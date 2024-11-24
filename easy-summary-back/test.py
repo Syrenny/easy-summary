@@ -1,63 +1,41 @@
-import asyncio
-import websockets
-import aiofiles
-import ffmpeg
-import os
-import glob
+from openai import OpenAI
+from environment import credentials
 
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=credentials.open_router_key,
+)
 
-async def send_audio_file(file_path, websocket_url, chunk_duration_sec=1):
-    """
-    Отправляет аудиофайл на сервер через WebSocket, нарезая его на фрагменты и перекодируя в ogg/opus.
+# Пример текста для структурирования в Markdown
+example_text = """
+Всем привет! Сегодня я хотел бы поделиться с вами некоторыми идеями по улучшению работы нашей команды.
 
-    :param file_path: Путь к аудиофайлу (.webm).
-    :param websocket_url: URL WebSocket сервера.
-    :param chunk_duration_sec: Длительность каждого фрагмента в секундах.
-    """
-    chunk_template = "chunk_%03d.webm"  # Шаблон для фрагментов
+Во-первых, важно наладить регулярное общение. Коммуникация является ключом к успеху, и регулярные встречи могут помочь решить многие вопросы.
 
-    # Разбиваем аудио на части с перекодированием с использованием ffmpeg-python
-    try:
-        # Используем ffmpeg-python для нарезки и перекодировки
-        (
-            ffmpeg
-            .input(file_path)  # Входной файл .webm
-            .output(chunk_template, f='segment', segment_time=str(chunk_duration_sec), c='copy')
-            .run(overwrite_output=True)  # Запускаем команду
-        )
+Во-вторых, нам нужно улучшить процесс обработки задач. Например, каждый член команды может ответственно подходить к работе с конкретными задачами и соблюдать дедлайны.
 
-        # Подключаемся к WebSocket серверу и отправляем фрагменты
-        async with websockets.connect(websocket_url) as websocket:
-            i = 0
-            while True:
-                chunk_path = chunk_template % i
-                if not os.path.exists(chunk_path):
-                    break  # Все фрагменты отправлены
+Наконец, стоит подумать о внедрении новых инструментов для работы с проектами. Например, мы можем использовать Trello для организации задач и Google Docs для совместной работы над документами.
+"""
 
-                async with aiofiles.open(chunk_path, mode='rb') as f:
-                    audio_chunk = await f.read()
-                    await websocket.send(audio_chunk)
-                    print(f"Sent chunk {i}: {len(audio_chunk)} bytes")
+# Промпт для формирования Markdown
+prompt = f"""
+Ты — эксперт в структурировании текста в формате Markdown. Преобразуй следующий текст в Markdown, используя заголовки, списки, выделение жирным шрифтом и курсивом, если это необходимо:
 
-                i += 1
-                await asyncio.sleep(chunk_duration_sec)  # Имитация реального времени
+Текст:
+{example_text}
 
-            # Получаем ответ от сервера
-            result = await websocket.recv()
-            print(f"Received result: {result}")
+Ответ должен быть чистым, хорошо форматированным Markdown текстом, сохрани содержание текста.
+"""
 
-    finally:
-        # Удаляем временные файлы
-        for file in glob.glob("chunk_*.webm"):
-            os.remove(file)
-
-
-async def main():
-    file_path = 'data/Fonvizin.webm'  # Укажите путь к вашему .webm файлу
-    websocket_url = 'ws://localhost:7256/easy-summary/recognize'  # Укажите URL вашего WebSocket сервера
-    await send_audio_file(file_path, websocket_url)
-
-
-# Запуск асинхронной программы
-if __name__ == "__main__":
-    asyncio.run(main())
+completion = client.chat.completions.create(
+    model="meta-llama/llama-3.1-8b-instruct:free",
+    messages=[
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ],
+    temperature=0.5,
+)
+print(completion)
+print(completion.choices[0].message.content)

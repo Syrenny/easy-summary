@@ -4,8 +4,9 @@ import uvicorn
 from fastapi import (FastAPI, WebSocket)
 from fastapi.middleware.cors import CORSMiddleware
 
-import routers.root as root
+import socketio
 
+from routers.root import sio
 
 origins = [
     "http://localhost:3000",  # Для разработки на localhost
@@ -15,6 +16,7 @@ origins = [
 ]
 
 app_prefix = "/easy-summary"
+
 app = FastAPI(
     openapi_url=f"{app_prefix}/docs_json",
     docs_url=f"{app_prefix}/docs")
@@ -27,11 +29,10 @@ app.add_middleware(
     allow_headers=["*"],  # Разрешаем все заголовки
 )
 
-app.include_router(root.router, prefix=app_prefix)
-
+socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
 def main():
-    uvicorn.run(app,
+    uvicorn.run(socket_app,
                 host="0.0.0.0",
                 port=7256)
 

@@ -1,53 +1,88 @@
-import React, { useEffect, useRef } from 'react'
+import React from 'react'
 
 const URL = 'ws://localhost:7256/easy-summary/recognize'
 
-const useWebSocket = (onMessage) => {
-	const socketRef = useRef(null) // Хранит ссылку на WebSocket
-	const reconnectIntervalRef = useRef(1000) // Начальный интервал для переподключения
-	const maxReconnectIntervalRef = useRef(30000) // Максимальный интервал переподключения
-	const reconnectAttemptsRef = useRef(0) // Счетчик попыток переподключения
+class WebSocketManager extends React.Component {
+	constructor(props) {
+		super(props)
+		this.socket = null
+		this.reconnectIntervalRef = 1000 // Начальный интервал для переподключения
+		this.maxReconnectIntervalRef = 30000 // Максимальный интервал переподключения
+		this.reconnectAttemptsRef = 0 // Счетчик попыток переподключения
+		this.isConnected = false // Флаг для контроля состояния подключения
+	}
 
-	const connect = () => {
+	// Метод для подключения к WebSocket
+	connect = () => {
+		if (this.isConnected) return // Если соединение уже установлено, не подключаемся снова
+
 		console.log('Подключение к WebSocket...')
-		socketRef.current = new WebSocket(URL)
+		this.socket = new WebSocket(URL)
 
-		socketRef.current.onopen = () => {
+		this.socket.onopen = () => {
 			console.log('Подключено к серверу')
-			reconnectAttemptsRef.current = 0 // Сброс счетчика попыток
-			reconnectIntervalRef.current = 1000 // Сброс интервала
+			this.isConnected = true // Устанавливаем флаг подключения
+			this.reconnectAttemptsRef = 0 // Сброс счетчика попыток
+			this.reconnectIntervalRef = 1000 // Сброс интервала
 		}
 
-		socketRef.current.onerror = (error) => {
+		if (this.props.onMessage) {
+			this.socket.onmessage = this.props.onmessage
+		}
+
+		this.socket.onerror = (error) => {
 			console.error('Ошибка WebSocket:', error)
 		}
 
-		socketRef.current.onclose = () => {
+		this.socket.onclose = () => {
 			console.log('Соединение закрыто. Попытка переподключения...')
-			reconnectAttemptsRef.current++
-			reconnectIntervalRef.current = Math.min(
-				maxReconnectIntervalRef.current,
-				reconnectIntervalRef.current * 2
+			this.isConnected = false // Обновляем флаг на не подключено
+			this.reconnectAttemptsRef++
+			this.reconnectIntervalRef = Math.min(
+				this.maxReconnectIntervalRef,
+				this.reconnectIntervalRef * 2
 			) // Увеличиваем интервал
 
-			setTimeout(connect, reconnectIntervalRef.current) // Запускаем попытку переподключения
+			setTimeout(this.connect, this.reconnectIntervalRef) // Запускаем попытку переподключения
 		}
+	};
 
-		socketRef.current.onmessage = onMessage
+	// Метод для остановки соединения
+	stopConnection = () => {
+		if (this.socket) {
+			this.socket.close()
+			this.isConnected = false // Устанавливаем флаг на отключено
+			console.log('Соединение закрыто вручную')
+		}
+	};
+
+	// Метод для старта соединения
+	startConnection = () => {
+		if (!this.isConnected) {
+			this.connect() // Если нет активного соединения, подключаемся
+		}
+	};
+
+	// Метод жизненного цикла componentDidMount
+	componentDidMount() {
+		// Здесь можно подключиться сразу или по требованию
+		// this.startConnection() // Включаем подключение при монтировании компонента
 	}
 
-	useEffect(() => {
-		connect() // Запускаем подключение при монтировании компонента
+	// Метод жизненного цикла componentWillUnmount
+	componentWillUnmount() {
+		this.stopConnection() // Останавливаем соединение при размонтировании компонента
+	}
 
-		return () => {
-			if (socketRef.current) {
-				socketRef.current.close() // Закрываем WebSocket при размонтировании
-				socketRef.current = null
-			}
-		}
-	}, []) // Пустой массив зависимостей, чтобы подключение произошло только один раз
+	// Метод для получения доступа к WebSocket
+	getSocket = () => {
+		return this.socket
+	};
 
-	return socketRef
+	render() {
+		// Компонент не рендерит ничего
+		return null
+	}
 }
 
-export default useWebSocket
+export default WebSocketManager

@@ -12,6 +12,7 @@ project_root = Path(__file__).parent.parent
 
 
 class Credentials(BaseSettings):
+    open_router_key: str
     salute_speech_auth_key: str
     salute_speech_access_token: str = ""
 

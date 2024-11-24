@@ -12,6 +12,7 @@ grpcio-tools
 uvicorn
 fastapi
 python-multipart
+python-socketio
 websockets
 
 # Audio processing
@@ -20,3 +21,7 @@ ffmpeg-python
 
 # Testing
 aiofiles
+
+# Text postprocessing
+openai
+
