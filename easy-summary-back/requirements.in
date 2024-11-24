@@ -1,0 +1,22 @@
+# Testing modules
+jupyter
+ipywidgets
+
+# Environment
+pydantic
+pydantic-settings
+python-dotenv
+
+# API
+grpcio-tools
+uvicorn
+fastapi
+python-multipart
+websockets
+
+# Audio processing
+pydub
+ffmpeg-python
+
+# Testing
+aiofiles
