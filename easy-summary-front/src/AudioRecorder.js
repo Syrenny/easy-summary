@@ -38,7 +38,7 @@ const AudioRecorder = () => {
 		})
 
 		socket.current.on('recognition_result', (data) => {
-			setTranscribedText(prevText => prevText + data)
+			setTranscribedText(data)
 		})
 	}
 

@@ -73,7 +73,7 @@ class RecognitionManager:
             connection = self.stub.Recognize(self._create_stream())
             async for resp in connection:
                 print("resp.results[0]", resp.results[0])
-                yield resp.results[0].normalized_text
+                yield resp.results[0].text
         except grpc.RpcError as err:
             print('RPC error: code = {}, details = {}'.format(err.code(), err.details()))
         except Exception as exc:
