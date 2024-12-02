@@ -16,12 +16,17 @@ python-socketio
 websockets
 
 # Audio processing
+librosa
+soundfile
 pydub
 ffmpeg-python
+faster-whisper
 
 # Testing
 aiofiles
 
 # Text postprocessing
 openai
+
+
 

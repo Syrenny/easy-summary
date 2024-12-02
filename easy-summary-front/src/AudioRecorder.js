@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { io } from 'socket.io-client'
+import { MediaRecorder, register } from 'extendable-media-recorder'
+import { connect } from 'extendable-media-recorder-wav-encoder';
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import 'github-markdown-css/github-markdown.css'
 
 const URL = 'ws://localhost:7256'
+await register(await connect());
 
 const AudioRecorder = () => {
-	const [isRecording, setIsRecording] = useState(false)
+	const isRecording = useRef(false)
 	const [transcribedText, setTranscribedText] = useState('')
 
 	const socket = useRef(null)
@@ -38,8 +41,37 @@ const AudioRecorder = () => {
 		})
 
 		socket.current.on('recognition_result', (data) => {
-			setTranscribedText(data)
+			setTranscribedText(prev => prev + data)
 		})
+	}
+
+	const record_and_send = () => {
+		mediaRecorderRef.current = new MediaRecorder(audioStreamRef.current, { mimeType: 'audio/webm' })
+		const chunks = []
+		// Собираем чанк данных
+		mediaRecorderRef.current.ondataavailable = e => {
+			console.log("Pushing chunk:", e.data)
+			chunks.push(e.data)
+		}
+		mediaRecorderRef.current.onstop = e => {
+			console.log("Sending chunks:", chunks)
+			sendAudio(new Blob(chunks))
+		}
+		// Обработка ошибок
+		// mediaRecorderRef.current.onerror = (error) => {
+		// 	console.error("Recording error:", error)
+		// 	isRecording.current = false
+		// }
+		// Запуск записи
+		mediaRecorderRef.current.start()
+		// Останавливаем запись через 1 секунду
+		setTimeout(() => {
+			mediaRecorderRef.current.stop()
+			if (isRecording.current) {
+				console.log("Next recording")
+				record_and_send()
+			}
+		}, 5000)
 	}
 
 	const disconnectSocket = () => {
@@ -51,12 +83,12 @@ const AudioRecorder = () => {
 	}
 
 	const stopRecording = async () => {
+		audioStreamRef.current.getTracks().forEach(track => track.stop())
 		if (mediaRecorderRef.current) {
 			mediaRecorderRef.current.stop()
+			isRecording.current = false
 			disconnectSocket()
-			setIsRecording(false)
 		}
-		audioStreamRef.current.getTracks().forEach(track => track.stop())
 	}
 
 	const startRecognition = () => {
@@ -64,34 +96,18 @@ const AudioRecorder = () => {
 		socket.current.emit('recognition_start')
 	}
 
-	const sendChunk = (audioData) => {
+	const sendAudio = (audioData) => {
 		console.log("Sending bytes", audioData)
-		socket.current.emit('recognition_chunk', audioData)
+		if (socket.current)
+			socket.current.emit('recognition', audioData)
 	}
 
 	const startRecording = async () => {
+		audioStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
 		connectSocket()
 		startRecognition()
-		setIsRecording(true)
-		audioStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
-		mediaRecorderRef.current = new MediaRecorder(audioStreamRef.current, { mimeType: 'audio/ogg;codecs=opus' })
-		const chunks = []
-
-		// Собираем чанк данных
-		mediaRecorderRef.current.ondataavailable = e => {
-			// console.log("Pushing chunk:", e.data)
-			chunks.push(e.data)
-			sendChunk(e.data)
-		}
-
-		// Обработка ошибок
-		mediaRecorderRef.current.onerror = (error) => {
-			console.error("Recording error:", error)
-			setIsRecording(false)
-		}
-
-		// Запуск записи
-		mediaRecorderRef.current.start(1000)
+		isRecording.current = true
+		record_and_send()
 	}
 
 	const clearText = () => {
@@ -113,14 +129,12 @@ const AudioRecorder = () => {
 			<div className="flex justify-center gap-4 mb-6">
 				<button
 					onClick={startRecording}
-					disabled={isRecording}
 					className="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
 				>
 					Start Recording
 				</button>
 				<button
 					onClick={stopRecording}
-					disabled={!isRecording}
 					className="px-6 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-700 disabled:bg-red-300"
 				>
 					Stop Recording

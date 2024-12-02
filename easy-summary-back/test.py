@@ -1,41 +1,7 @@
-from openai import OpenAI
-from environment import credentials
+import soundfile as sf
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=credentials.open_router_key,
-)
+# Список доступных форматов
+print("Supported formats:", "ogg" in str(sf.available_formats()).lower())
 
-# Пример текста для структурирования в Markdown
-example_text = """
-Всем привет! Сегодня я хотел бы поделиться с вами некоторыми идеями по улучшению работы нашей команды.
-
-Во-первых, важно наладить регулярное общение. Коммуникация является ключом к успеху, и регулярные встречи могут помочь решить многие вопросы.
-
-Во-вторых, нам нужно улучшить процесс обработки задач. Например, каждый член команды может ответственно подходить к работе с конкретными задачами и соблюдать дедлайны.
-
-Наконец, стоит подумать о внедрении новых инструментов для работы с проектами. Например, мы можем использовать Trello для организации задач и Google Docs для совместной работы над документами.
-"""
-
-# Промпт для формирования Markdown
-prompt = f"""
-Ты — эксперт в структурировании текста в формате Markdown. Преобразуй следующий текст в Markdown, используя заголовки, списки, выделение жирным шрифтом и курсивом, если это необходимо:
-
-Текст:
-{example_text}
-
-Ответ должен быть чистым, хорошо форматированным Markdown текстом, сохрани содержание текста.
-"""
-
-completion = client.chat.completions.create(
-    model="meta-llama/llama-3.1-8b-instruct:free",
-    messages=[
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ],
-    temperature=0.5,
-)
-print(completion)
-print(completion.choices[0].message.content)
+# Список поддерживаемых сабтипов
+print("Supported subtypes:", "opus" in str(sf.available_subtypes()).lower())

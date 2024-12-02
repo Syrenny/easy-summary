@@ -28,6 +28,10 @@ attrs==24.2.0
     # via
     #   jsonschema
     #   referencing
+audioread==3.0.1
+    # via librosa
+av==13.1.0
+    # via faster-whisper
 babel==2.16.0
     # via jupyterlab-server
 beautifulsoup4==4.12.3
@@ -42,19 +46,27 @@ certifi==2024.8.30
     #   httpx
     #   requests
 cffi==1.17.1
-    # via argon2-cffi-bindings
+    # via
+    #   argon2-cffi-bindings
+    #   soundfile
 charset-normalizer==3.4.0
     # via requests
 click==8.1.7
     # via uvicorn
+coloredlogs==15.0.1
+    # via onnxruntime
 comm==0.2.2
     # via
     #   ipykernel
     #   ipywidgets
+ctranslate2==4.5.0
+    # via faster-whisper
 debugpy==1.8.9
     # via ipykernel
 decorator==5.1.1
-    # via ipython
+    # via
+    #   ipython
+    #   librosa
 defusedxml==0.7.1
     # via nbconvert
 distro==1.9.0
@@ -63,12 +75,20 @@ executing==2.1.0
     # via stack-data
 fastapi==0.115.5
     # via -r requirements.in
+faster-whisper==1.1.0
+    # via -r requirements.in
 fastjsonschema==2.20.0
     # via nbformat
 ffmpeg-python==0.2.0
     # via -r requirements.in
+filelock==3.16.1
+    # via huggingface-hub
+flatbuffers==24.3.25
+    # via onnxruntime
 fqdn==1.5.1
     # via jsonschema
+fsspec==2024.10.0
+    # via huggingface-hub
 future==1.0.0
     # via ffmpeg-python
 grpcio==1.68.0
@@ -86,6 +106,12 @@ httpx==0.27.2
     # via
     #   jupyterlab
     #   openai
+huggingface-hub==0.26.2
+    # via
+    #   faster-whisper
+    #   tokenizers
+humanfriendly==10.0
+    # via coloredlogs
 idna==3.10
     # via
     #   anyio
@@ -118,6 +144,10 @@ jinja2==3.1.4
     #   nbconvert
 jiter==0.7.1
     # via openai
+joblib==1.4.2
+    # via
+    #   librosa
+    #   scikit-learn
 json5==0.9.28
     # via jupyterlab-server
 jsonpointer==3.0.0
@@ -174,6 +204,12 @@ jupyterlab-server==2.27.3
     #   notebook
 jupyterlab-widgets==3.0.13
     # via ipywidgets
+lazy-loader==0.4
+    # via librosa
+librosa==0.10.2.post1
+    # via -r requirements.in
+llvmlite==0.43.0
+    # via numba
 markupsafe==3.0.2
     # via
     #   jinja2
@@ -184,6 +220,10 @@ matplotlib-inline==0.1.7
     #   ipython
 mistune==3.0.2
     # via nbconvert
+mpmath==1.3.0
+    # via sympy
+msgpack==1.1.0
+    # via librosa
 nbclient==0.10.0
     # via nbconvert
 nbconvert==7.16.4
@@ -203,17 +243,34 @@ notebook-shim==0.2.4
     # via
     #   jupyterlab
     #   notebook
-openai==1.55.0
+numba==0.60.0
+    # via librosa
+numpy==2.0.2
+    # via
+    #   ctranslate2
+    #   librosa
+    #   numba
+    #   onnxruntime
+    #   scikit-learn
+    #   scipy
+    #   soxr
+onnxruntime==1.20.1
+    # via faster-whisper
+openai==1.55.1
     # via -r requirements.in
 overrides==7.7.0
     # via jupyter-server
 packaging==24.2
     # via
+    #   huggingface-hub
     #   ipykernel
     #   jupyter-server
     #   jupyterlab
     #   jupyterlab-server
+    #   lazy-loader
     #   nbconvert
+    #   onnxruntime
+    #   pooch
 pandocfilters==1.5.1
     # via nbconvert
 parso==0.8.4
@@ -221,7 +278,11 @@ parso==0.8.4
 pexpect==4.9.0
     # via ipython
 platformdirs==4.3.6
-    # via jupyter-core
+    # via
+    #   jupyter-core
+    #   pooch
+pooch==1.8.2
+    # via librosa
 prometheus-client==0.21.0
     # via jupyter-server
 prompt-toolkit==3.0.48
@@ -229,7 +290,9 @@ prompt-toolkit==3.0.48
     #   ipython
     #   jupyter-console
 protobuf==5.28.3
-    # via grpcio-tools
+    # via
+    #   grpcio-tools
+    #   onnxruntime
 psutil==6.1.0
     # via ipykernel
 ptyprocess==0.7.0
@@ -274,7 +337,10 @@ python-multipart==0.0.17
 python-socketio==5.11.4
     # via -r requirements.in
 pyyaml==6.0.2
-    # via jupyter-events
+    # via
+    #   ctranslate2
+    #   huggingface-hub
+    #   jupyter-events
 pyzmq==26.2.0
     # via
     #   ipykernel
@@ -287,7 +353,10 @@ referencing==0.35.1
     #   jsonschema-specifications
     #   jupyter-events
 requests==2.32.3
-    # via jupyterlab-server
+    # via
+    #   huggingface-hub
+    #   jupyterlab-server
+    #   pooch
 rfc3339-validator==0.1.4
     # via
     #   jsonschema
@@ -300,6 +369,12 @@ rpds-py==0.21.0
     # via
     #   jsonschema
     #   referencing
+scikit-learn==1.5.2
+    # via librosa
+scipy==1.14.1
+    # via
+    #   librosa
+    #   scikit-learn
 send2trash==1.8.3
     # via jupyter-server
 simple-websocket==1.1.0
@@ -314,18 +389,30 @@ sniffio==1.3.1
     #   anyio
     #   httpx
     #   openai
+soundfile==0.12.1
+    # via
+    #   -r requirements.in
+    #   librosa
 soupsieve==2.6
     # via beautifulsoup4
+soxr==0.5.0.post1
+    # via librosa
 stack-data==0.6.3
     # via ipython
 starlette==0.41.3
     # via fastapi
+sympy==1.13.3
+    # via onnxruntime
 terminado==0.18.1
     # via
     #   jupyter-server
     #   jupyter-server-terminals
+threadpoolctl==3.5.0
+    # via scikit-learn
 tinycss2==1.4.0
     # via nbconvert
+tokenizers==0.20.3
+    # via faster-whisper
 tornado==6.4.2
     # via
     #   ipykernel
@@ -334,8 +421,11 @@ tornado==6.4.2
     #   jupyterlab
     #   notebook
     #   terminado
-tqdm==4.67.0
-    # via openai
+tqdm==4.67.1
+    # via
+    #   faster-whisper
+    #   huggingface-hub
+    #   openai
 traitlets==5.14.3
     # via
     #   comm
@@ -357,6 +447,8 @@ types-python-dateutil==2.9.0.20241003
 typing-extensions==4.12.2
     # via
     #   fastapi
+    #   huggingface-hub
+    #   librosa
     #   openai
     #   pydantic
     #   pydantic-core
