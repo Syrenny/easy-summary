@@ -19,41 +19,37 @@ class MarkdownLayoutEditor:
         "model": "meta-llama/llama-3.1-8b-instruct:free",
         "temperature": 0.4,
     }
-    history = ""
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=credentials.open_router_key,
     )
 
-    def _create_message(self):
+    def _create_message(self, text):
         """
         Создание сообщения для передачи в модель с добавлением текста.
 
         :return: словарь с ролью и текстом сообщения
         """
         prompt = prompt_template.format(
-            raw_text=self.history,
+            raw_text=text,
         )
         return {
             "role": "user",  # Роль пользователя
             "content": prompt
         }
 
-    def _generate_markdown(self, chunk: str) -> str:
+    def _generate_markdown(self, text: str) -> str:
         """
         Отправка запроса в модель для преобразования текста в Markdown.
 
-        :param chunk: текст для преобразования
+        :param text: текст для преобразования
         :return: ответ модели, преобразованный в Markdown
         """
-        if not chunk:
+        if not text:
             return ""
 
-        self.history += "\n" + chunk
-
-        # Отправка запроса в OpenAI API с историей сообщений для улучшения контекста
         completion = self.client.chat.completions.create(
-            messages=[self._create_message()],
+            messages=[self._create_message(text)],
             **self.params
         )
         # Извлечение ответа модели
@@ -62,11 +58,11 @@ class MarkdownLayoutEditor:
         print("Edited:", self.history)
         return self.history
 
-    def __call__(self, chunk: str) -> str:
+    def __call__(self, text: str) -> str:
         """
         Метод, который позволяет использовать экземпляр класса как функцию.
 
-        :param chunk: текстовый чанк для преобразования в Markdown
+        :param text: текстовый корпус для преобразования в Markdown
         :return: текст, преобразованный в Markdown
         """
-        return self._generate_markdown(chunk)
+        return self._generate_markdown(text)

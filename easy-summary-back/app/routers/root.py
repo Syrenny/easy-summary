@@ -12,36 +12,16 @@ from environment import credentials, project_root
 from postprocess import MarkdownLayoutEditor
 
 
-class ModelPool:
-    def __init__(self, model_count: int, model_name: str, device: str = "cpu"):
-        self.model_count = model_count
-        self.models = [WhisperModel(model_name, device=device, compute_type="float32") for _ in range(model_count)]
-        self.queue = Queue(maxsize=model_count)
-
-        # Добавляем модели в очередь
-        for model in self.models:
-            self.queue.put_nowait(model)
-
-    async def get_model(self):
-        # Забираем модель из очереди
-        model = await self.queue.get()
-        return model
-
-    async def return_model(self, model: WhisperModel):
-        # Возвращаем модель в пул
-        await self.queue.put(model)
-
 # Инициализация пула из 2 моделей
-model_pool = ModelPool(
-    model_count=1,
-    model_name="tiny",
-    device="cpu"
-)
+model = WhisperModel('small', device='cpu', compute_type="int8")
 md_editor = MarkdownLayoutEditor()
+audio_buffer = io.BytesIO()
 
 sio = socketio.AsyncServer(
     async_mode="asgi",  # Указываем режим работы
-    cors_allowed_origins="*"  # Настройка CORS
+    cors_allowed_origins="*",  # Настройка CORS
+    ping_interval=25,
+    ping_timeout=60
 )
 
 
@@ -56,33 +36,51 @@ async def disconnect(sid):
 
 
 @sio.event
-async def recognition_start(sid):
+async def receive_start(sid):
+    audio_buffer.seek(0)
+    audio_buffer.truncate(0)
     print("Starting recognition")
 
 
 @sio.event
-async def recognition(sid, data):
-    recognition_task = asyncio.create_task(process_recognition(sid, data))
-    print("Task created")
+async def audio_chunk(sid, data: bytes):
+    print("Audio chunk received")
+    audio_buffer.write(data)
+
+
+@sio.event
+async def receive_end(sid):
+    print("Recognition started")
+    recognition_task = asyncio.create_task(process_recognition(sid))
     await recognition_task
 
 
-async def process_recognition(sid, data):
-    print("Processing snippet")
-    model = await model_pool.get_model()
+# Функция для отправки текста по чанкам
+async def split_text(text):
+    CHUNK_SIZE = 1000
+    start = 0
+    while start < len(text):
+        # Разбиваем текст на чанки
+        chunk = text[start:start + CHUNK_SIZE]
+        yield chunk
+        start += CHUNK_SIZE
 
-    try:
-        # Обработка аудио (синхронная операция, поэтому используем to_thread)
-        segments, _ = await asyncio.to_thread(
-            model.transcribe,
-            io.BytesIO(data),
+
+async def process_recognition(sid):
+        audio_buffer.seek(0)
+        segments, _ = model.transcribe(
+            audio_buffer,
             language='ru'
         )
-
+        result = ""
         # Отправка результата обратно
+        # for segment in segments:
+        #     print(f"Recognized: {segment}")
+        #     await sio.emit('recognition_result', segment.text, room=sid)
         for segment in segments:
-            print(f"Recognized: {segment}")
-            await sio.emit('recognition_result', segment.text, room=sid)
-    finally:
-        # Возвращаем модель обратно в пул
-        await model_pool.return_model(model)
+            result += segment.text
+        print("Structuring started")
+        result = md_editor(result)
+        async for chunk in split_text(result):
+            print("Returning result of recognition")
+            await sio.emit('recognition_result', chunk, room=sid)
