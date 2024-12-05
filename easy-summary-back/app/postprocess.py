@@ -1,5 +1,6 @@
 from openai import OpenAI
 from environment import credentials
+import re
 
 
 # Промпт для формирования Markdown
@@ -15,15 +16,19 @@ prompt_template = """
 Вот текст для обработки:  
 "{raw_text}"  
 
-Верни результат только в формате Markdown.
-
 """
+
+def extract_markdown_content(response):
+    # Регулярное выражение для поиска содержимого внутри ```markdown
+    pattern = r"```(?:markdown)?\n([\s\S]*?)```"
+    match = re.search(pattern, response)
+    return match.group(1).strip() if match else response
 
 
 class MarkdownLayoutEditor:
     params = {
         "model": "mistralai/mistral-7b-instruct:free",
-        "temperature": 0.3,
+        "temperature": 0.1,
     }
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -71,4 +76,4 @@ class MarkdownLayoutEditor:
         :param text: текстовый корпус для преобразования в Markdown
         :return: текст, преобразованный в Markdown
         """
-        return self._generate_markdown(text)
+        return extract_markdown_content(self._generate_markdown(text))
