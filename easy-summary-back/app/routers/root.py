@@ -73,14 +73,13 @@ async def process_recognition(sid):
             language='ru'
         )
         result = ""
-        # Отправка результата обратно
-        # for segment in segments:
-        #     print(f"Recognized: {segment}")
-        #     await sio.emit('recognition_result', segment.text, room=sid)
-        for segment in segments:
-            result += segment.text
-        print("Structuring started")
-        result = md_editor(result)
-        async for chunk in split_text(result):
-            print("Returning result of recognition")
-            await sio.emit('recognition_result', chunk, room=sid)
+        try:
+            for segment in segments:
+                result += segment.text
+            print("Structuring started")
+            result = md_editor(result)
+            async for chunk in split_text(result):
+                print("Returning result of recognition")
+                await sio.emit('recognition_result', chunk, room=sid)
+        finally:
+            await sio.disconnect(sid)

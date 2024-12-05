@@ -1,23 +1,28 @@
 import React, { useState, useEffect, useRef } from "react"
 import { io } from "socket.io-client"
-import { MediaRecorder, register } from "extendable-media-recorder"
-import { connect } from "extendable-media-recorder-wav-encoder"
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import "github-markdown-css/github-markdown.css"
 import { Button, FileInput, Modal, Label } from 'flowbite-react'
+import { FaMicrophone, FaStop, FaTrashAlt, FaDownload } from 'react-icons/fa'
 
 const URL = "ws://localhost:7256"
-await register(await connect())
 
 const AudioRecorder = () => {
-	const [isRecording, setIsRecording] = useState(false)
-	const [isHandlingFile, setIsHandlingFile] = useState(false)
+	const [disableElement, setDisableElement] = useState({
+		start: false,
+		stop: true,
+		file: false,
+		clear: false,
+		download: false,
+		loading: true
+	})
 	const [transcribedText, setTranscribedText] = useState("")
 	const socket = useRef(null)
 	const audioStreamRef = useRef(null)
 	const mediaRecorderRef = useRef(null)
+	const fileInputRef = useRef(null)
 
 	const connectSocket = () => {
 		console.log("Подключение к серверу...")
@@ -39,8 +44,14 @@ const AudioRecorder = () => {
 		})
 
 		socket.current.on("disconnect", () => {
-			setIsRecording(false)
-			setIsHandlingFile(false)
+			setDisableElement({
+				start: false,
+				stop: true,
+				file: false,
+				clear: false,
+				download: false,
+				loading: true
+			})
 		})
 
 		socket.current.on("connect_error", (error) => {
@@ -80,6 +91,14 @@ const AudioRecorder = () => {
 	}
 
 	const stopRecording = async () => {
+		setDisableElement({
+			start: true,
+			stop: true,
+			file: true,
+			clear: false,
+			download: false,
+			loading: false
+		})
 		audioStreamRef.current.getTracks().forEach((track) => track.stop())
 		if (mediaRecorderRef.current) {
 			mediaRecorderRef.current.stop()
@@ -87,11 +106,18 @@ const AudioRecorder = () => {
 	}
 
 	const startRecording = async () => {
+		setDisableElement({
+			start: true,
+			stop: false,
+			file: true,
+			clear: false,
+			download: false,
+			loading: true
+		})
 		audioStreamRef.current = await navigator.mediaDevices.getUserMedia({
 			audio: true,
 		})
 		initConnection()
-		setIsRecording(true)
 		record_and_send()
 	}
 
@@ -109,12 +135,19 @@ const AudioRecorder = () => {
 	}
 
 	const handleFileUpload = (event) => {
+		setDisableElement({
+			start: true,
+			stop: true,
+			file: true,
+			clear: false,
+			download: false,
+			loading: false
+		})
 		const CHUNK_SIZE = 64 * 1024 // Размер чанка (64 КБ)
 
 		const file = event.target.files[0]
 		if (!file) return
 		initConnection()
-		setIsHandlingFile(true)
 
 		let offset = 0
 
@@ -141,65 +174,87 @@ const AudioRecorder = () => {
 
 	return (
 		<div className="max-w-4xl mx-auto p-6">
-			<h1 className="text-3xl font-bold text-center mb-6">
+			<h1 className="text-2xl font-bold text-center mb-6">
 				Audio Recorder & Transcription
 			</h1>
 			<div className="flex justify-center gap-4 mb-6">
 				<Button
+					outline
+					gradientDuoTone="redToYellow"
 					onClick={startRecording}
-					disabled={isRecording || isHandlingFile}
-					className="w-full sm:w-auto"
+					disabled={disableElement.start}
+					className="w-full sm:w-auto focus:ring-0"
 				>
+					<FaMicrophone className="mr-3 h-4 w-4" />
 					Start Recording
 				</Button>
 				<Button
+					outline
+					color="gray"
 					onClick={stopRecording}
-					disabled={!isRecording || isHandlingFile}
-					className="w-full sm:w-auto"
+					disabled={disableElement.stop}
+					className="w-full sm:w-auto focus:ring-0 border-gray-300"
 				>
+					<FaStop className="mr-3 h-4 w-4" />
 					Stop Recording
 				</Button>
 			</div>
 
 			<div>
 				<div className="mb-2 block">
-					<Label htmlFor="file-upload" value="Audio files" />
+					<Label htmlFor="file-upload" value="Audio file" />
 				</div>
 				<FileInput
+					ref={fileInputRef.current}
 					type="file"
-					disabled={isRecording || isHandlingFile}
+					disabled={disableElement.file}
 					accept="audio/*"
 					onChange={handleFileUpload}
 					className="mb-4"
 				/>
 			</div>
 
-			<div className="mb-6">
-				<div className='flex items-center justify-center mb-3 w-full'>
-					<h2 className="text-2xl font-semibold">Transcribed Text</h2>
-					<div class="ml-3 w-5 h-5 border-4 border-t-transparent border-gray-700 border-solid rounded-full animate-spin" hidden={!isRecording &&!isHandlingFile}></div>
+			<div className='flex h-[30px] items-center justify-center w-full'>
+				<div className="ml-3 w-5 h-5 border-4 border-t-transparent border-gray-700 border-solid rounded-full animate-spin" hidden={disableElement.loading}></div>
+				<div hidden={disableElement.loading} className='ml-3 text-sm italic'>
+					Обрабатываю текст...
 				</div>
-				<div className="markdown-body border border-gray-300 rounded-lg p-4 prose prose-sm dark:prose-invert">
+				<div className="flex ml-auto justify-center gap-4">
+					<Button
+						outline
+						size="xs"
+						color="gray"
+						onClick={downloadText}
+						disabled={disableElement.download}
+						className="sm:w-auto border-gray-300 focus:ring-0 rounded-b-none border-b-0"
+					>
+						<div className='w-full h-full flex items-center'>
+							<FaDownload className="mr-2 h-3 w-3" />
+							Download
+						</div>
+					</Button>
+					<Button
+						outline
+						size="xs"
+						color="gray"
+						onClick={clearText}
+						disabled={disableElement.clear}
+						className="h-full w-full sm:w-auto border-gray-300 focus:ring-0 rounded-b-none border-b-0"
+					>
+						<div className='w-full h-full flex items-center'>
+							<FaTrashAlt className="mr-2 h-3 w-3" />
+							Clear Text
+						</div>
+					</Button>
+				</div>
+			</div>
+
+			<div className="mb-6">
+				<div className="markdown-body border border-gray-300 rounded-lg rounded-tr-none p-4 prose prose-sm dark:prose-invert">
 					<ReactMarkdown remarkPlugins={[remarkGfm]} children={transcribedText} />
 				</div>
 			</div>
 
-			<div className="flex justify-center gap-4">
-				<Button
-					onClick={clearText}
-					disabled={isRecording || isHandlingFile}
-					className="w-full sm:w-auto"
-				>
-					Clear Text
-				</Button>
-				<Button
-					onClick={downloadText}
-					disabled={isRecording || isHandlingFile}
-					className="w-full sm:w-auto"
-				>
-					Download Text
-				</Button>
-			</div>
 		</div>
 	)
 }
