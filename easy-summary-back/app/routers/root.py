@@ -11,7 +11,6 @@ from faster_whisper import WhisperModel
 from environment import credentials, project_root
 from postprocess import MarkdownLayoutEditor
 
-
 # Инициализация пула из 2 моделей
 model = WhisperModel('small', device='cpu', compute_type="int8")
 md_editor = MarkdownLayoutEditor()
@@ -21,7 +20,7 @@ sio = socketio.AsyncServer(
     async_mode="asgi",  # Указываем режим работы
     cors_allowed_origins="*",  # Настройка CORS
     ping_interval=25,
-    ping_timeout=60
+    ping_timeout=120
 )
 
 
@@ -67,19 +66,23 @@ async def split_text(text):
 
 
 async def process_recognition(sid):
-        audio_buffer.seek(0)
-        segments, _ = model.transcribe(
+    audio_buffer.seek(0)
+    result = ""
+    try:
+        loop = asyncio.get_event_loop()
+        # Выполняем тяжелые операции в пуле потоков
+        segments, _ = await loop.run_in_executor(
+            None,
+            model.transcribe,
             audio_buffer,
-            language='ru'
+            'ru'
         )
-        result = ""
-        try:
-            for segment in segments:
-                result += segment.text
-            print("Structuring started")
-            result = md_editor(result)
-            async for chunk in split_text(result):
-                print("Returning result of recognition")
-                await sio.emit('recognition_result', chunk, room=sid)
-        finally:
-            await sio.disconnect(sid)
+        for segment in segments:
+            result += segment.text
+        print("Structuring started")
+        result = await loop.run_in_executor(None, md_editor, result)
+        async for chunk in split_text(result):
+            print("Returning result of recognition")
+            await sio.emit('recognition_result', chunk, room=sid)
+    finally:
+        await sio.disconnect(sid)

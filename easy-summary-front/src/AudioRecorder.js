@@ -30,7 +30,7 @@ const AudioRecorder = () => {
 			reconnectionAttempts: 5,
 			reconnectionDelay: 1000,
 			pingInterval: 25000, // Интервал пинга
-			pingTimeout: 60000, // Тайм-аут на пинг
+			pingTimeout: 120000, // Тайм-аут на пинг
 		})
 
 		console.log("Socket", socket.current)
@@ -185,8 +185,10 @@ const AudioRecorder = () => {
 					disabled={disableElement.start}
 					className="w-full sm:w-auto focus:ring-0"
 				>
-					<FaMicrophone className="mr-3 h-4 w-4" />
-					Start Recording
+					<div className='w-full h-full flex items-center'>
+						<FaMicrophone className="mr-3 h-4 w-4" />
+						Start Recording
+					</div>
 				</Button>
 				<Button
 					outline
@@ -195,8 +197,10 @@ const AudioRecorder = () => {
 					disabled={disableElement.stop}
 					className="w-full sm:w-auto focus:ring-0 border-gray-300"
 				>
-					<FaStop className="mr-3 h-4 w-4" />
-					Stop Recording
+					<div className='w-full h-full flex items-center'>
+						<FaStop className="mr-3 h-4 w-4" />
+						Stop Recording
+					</div>
 				</Button>
 			</div>
 
