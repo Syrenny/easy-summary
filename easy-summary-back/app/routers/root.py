@@ -4,7 +4,6 @@ from asyncio import Queue
 
 import numpy as np
 import socketio
-from pydub import AudioSegment
 
 from faster_whisper import WhisperModel
 
@@ -12,7 +11,11 @@ from environment import credentials, project_root
 from postprocess import MarkdownLayoutEditor
 
 # Инициализация пула из 2 моделей
-model = WhisperModel('small', device='cpu', compute_type="int8")
+model = WhisperModel(
+    credentials.faster_whisper_model,
+    device=credentials.faster_whisper_device,
+    compute_type=credentials.faster_whisper_compute_type,
+)
 md_editor = MarkdownLayoutEditor()
 audio_buffer = io.BytesIO()
 

@@ -1,0 +1,38 @@
+services:
+  backend:
+    build:
+      dockerfile: ../docker/Dockerfile.back
+      context: ../easy-summary-back
+    container_name: backend
+    ports:
+      - "7256:7256"
+    environment:
+      OPEN_ROUTER_KEY: /run/secrets/open-router-key
+      FASTER_WHISPER_MODEL: small
+      FASTER_WHISPER_DEVICE: cpu
+      FASTER_WHISPER_COMPUTE_TYPE: int8
+      CHAT_MODEL: mistralai/mistral-7b-instruct:free
+      CHAT_MODEL_T: 0.1
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    secrets:
+      - open-router-key
+
+  frontend:
+    build:
+      dockerfile: ../docker/Dockerfile.front
+      context: ../easy-summary-front 
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+secrets:
+  open-router-key:
+    file: ./secrets/open-router-key

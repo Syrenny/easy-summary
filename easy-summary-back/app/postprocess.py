@@ -27,8 +27,8 @@ def extract_markdown_content(response):
 
 class MarkdownLayoutEditor:
     params = {
-        "model": "mistralai/mistral-7b-instruct:free",
-        "temperature": 0.1,
+        "model": credentials.chat_model,
+        "temperature": credentials.chat_model_t,
     }
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -76,4 +76,5 @@ class MarkdownLayoutEditor:
         :param text: текстовый корпус для преобразования в Markdown
         :return: текст, преобразованный в Markdown
         """
+        print("Key:", credentials.open_router_key)
         return extract_markdown_content(self._generate_markdown(text))

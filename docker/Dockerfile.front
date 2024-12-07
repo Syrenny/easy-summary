@@ -1,0 +1,32 @@
+# Укажите базовый образ Node.js
+FROM node:18 AS build
+
+# Установите рабочую директорию в контейнере
+WORKDIR /app
+
+# Скопируйте файлы package.json и package-lock.json в контейнер
+COPY package*.json ./
+
+# Установите зависимости
+RUN npm install
+
+# Скопируйте все файлы проекта в контейнер
+COPY . .
+
+# Соберите production-бандл
+RUN npm run build
+
+# Укажите базовый образ для сервера
+FROM nginx:alpine
+
+# Скопируйте бандл в папку Nginx
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Скопируйте конфиг Nginx, если требуется
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Откройте порт 80
+EXPOSE 80
+
+# Запустите Nginx
+CMD ["nginx", "-g", "daemon off;"]

@@ -9,10 +9,7 @@ import socketio
 from routers.root import sio
 
 origins = [
-    "http://localhost:3000",  # Для разработки на localhost
-    "http://localhost:8000",  # Если вы используете другой порт
-    "http://127.0.0.1:3000",  # Для IP-адреса
-    "http://127.0.0.1:8000",  # Для IP-адреса
+    "http://0.0.0.0:3000",
 ]
 
 app_prefix = "/easy-summary"
