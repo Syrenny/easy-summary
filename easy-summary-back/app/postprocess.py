@@ -1,7 +1,12 @@
 from openai import OpenAI
 from environment import credentials
 import re
+import logging
 
+
+# Настройка логгера
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Промпт для формирования Markdown
 prompt_template = """
