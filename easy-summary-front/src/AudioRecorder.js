@@ -9,6 +9,17 @@ import { FaMicrophone, FaStop, FaTrashAlt, FaDownload } from 'react-icons/fa'
 
 const URL = "ws://localhost:7256"
 
+const TranscribedText = ({ mode, text }) => {
+	switch (mode) {
+		case "preview":
+			return <ReactMarkdown remarkPlugins={[remarkGfm]} children={text.markdown} />
+		case "raw":
+			return <div>{text.raw}</div>
+		case "code":
+			return <div>{text.markdown}</div>
+	}
+}
+
 const AudioRecorder = () => {
 	const [disableElement, setDisableElement] = useState({
 		start: false,
@@ -18,11 +29,30 @@ const AudioRecorder = () => {
 		download: false,
 		loading: true
 	})
-	const [transcribedText, setTranscribedText] = useState("")
+	const [viewMode, setViewMode] = useState('preview')
+	const [transcribedText, setTranscribedText] = useState({
+		markdown: "",
+		raw: "",
+	})
 	const socket = useRef(null)
 	const audioStreamRef = useRef(null)
 	const mediaRecorderRef = useRef(null)
 	const fileInputRef = useRef(null)
+
+	useEffect(() => {
+		const texts = localStorage.getItem("transcribedText")
+		if (texts) {
+			try {
+				setTranscribedText(JSON.parse(texts))
+			} catch (error) {
+				console.error("Ошибка парсинга данных из localStorage:", error)
+			}
+		}
+	}, [])
+
+	useEffect(() => {
+		localStorage.setItem('transcribedText', JSON.stringify(transcribedText))
+	}, [transcribedText])
 
 	const connectSocket = () => {
 		console.log("Подключение к серверу...")
@@ -30,17 +60,13 @@ const AudioRecorder = () => {
 			reconnectionAttempts: 5,
 			reconnectionDelay: 1000,
 			pingInterval: 25000, // Интервал пинга
-			pingTimeout: 120000, // Тайм-аут на пинг
+			pingTimeout: 1000000, // Тайм-аут на пинг
 		})
 
 		console.log("Socket", socket.current)
 
 		socket.current.on("connect", () => {
 			console.log("Подключено к серверу")
-		})
-
-		socket.current.on("message", (data) => {
-			setTranscribedText((prev) => prev + " " + data)
 		})
 
 		socket.current.on("disconnect", () => {
@@ -58,8 +84,18 @@ const AudioRecorder = () => {
 			console.error("Ошибка подключения:", error)
 		})
 
+		socket.current.on("raw_text", (data) => {
+			setTranscribedText((prev) => ({
+				markdown: prev.markdown,
+				raw: prev.raw + " " + data,
+			}))
+		})
+
 		socket.current.on("recognition_result", (data) => {
-			setTranscribedText((prev) => prev + data)
+			setTranscribedText((prev) => ({
+				markdown: prev.markdown + " " + data,
+				raw: prev.raw,
+			}))
 		})
 	}
 
@@ -122,11 +158,14 @@ const AudioRecorder = () => {
 	}
 
 	const clearText = () => {
-		setTranscribedText("")
+		setTranscribedText((prev) => ({
+			markdown: "",
+			raw: "",
+		}))
 	}
 
 	const downloadText = () => {
-		const blob = new Blob([transcribedText], { type: "text/plain" })
+		const blob = new Blob([transcribedText.markdown], { type: "text/plain" })
 		const url = window.URL.createObjectURL(blob)
 		const a = document.createElement("a")
 		a.href = url
@@ -255,7 +294,42 @@ const AudioRecorder = () => {
 
 			<div className="mb-6">
 				<div className="markdown-body border border-gray-300 rounded-lg rounded-tr-none p-4 prose prose-sm dark:prose-invert">
-					<ReactMarkdown remarkPlugins={[remarkGfm]} children={transcribedText} />
+					<Button.Group className='mb-3'>
+						<Button
+							outline
+							size="xs"
+							color="gray"
+							onClick={(e) => setViewMode("preview")}
+							className="sm:w-auto border-gray-300 focus:ring-0"
+						>
+							<div className='w-full h-full flex items-center'>
+								Preview
+							</div>
+						</Button>
+						<Button
+							outline
+							size="xs"
+							color="gray"
+							onClick={(e) => setViewMode("code")}
+							className="sm:w-auto border-gray-300 focus:ring-0"
+						>
+							<div className='w-full h-full flex items-center'>
+								Code
+							</div>
+						</Button>
+						<Button
+							outline
+							size="xs"
+							color="gray"
+							onClick={(e) => setViewMode("raw")}
+							className="sm:w-auto border-gray-300 focus:ring-0"
+						>
+							<div className='w-full h-full flex items-center'>
+								Raw
+							</div>
+						</Button>
+					</Button.Group>
+					<TranscribedText mode={viewMode} text={transcribedText} />
 				</div>
 			</div>
 

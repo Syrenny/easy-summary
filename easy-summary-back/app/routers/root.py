@@ -26,7 +26,7 @@ sio = socketio.AsyncServer(
     async_mode="asgi",  # Указываем режим работы
     cors_allowed_origins="*",  # Настройка CORS
     ping_interval=25,
-    ping_timeout=120
+    ping_timeout=1000
 )
 
 
@@ -73,7 +73,7 @@ async def split_text(text):
 
 async def process_recognition(sid):
     audio_buffer.seek(0)
-    result = ""
+    raw = ""
     try:
         loop = asyncio.get_event_loop()
         # Выполняем тяжелые операции в пуле потоков
@@ -84,11 +84,23 @@ async def process_recognition(sid):
             'ru'
         )
         for segment in segments:
-            result += segment.text
+            raw += segment.text
+
+        # Отправляем сырой текст
+        logger.info("Sending raw text")
+        async for chunk in split_text(raw):
+            logger.debug("Returning raw text chunk")
+            await sio.emit('raw_text', chunk, room=sid)
+
+        # Обрабатываем текст
         logger.info("Structuring started")
-        result = await loop.run_in_executor(None, md_editor, result)
+        result = await loop.run_in_executor(None, md_editor, raw)
+
+        # Отправляем обработанный текст
+        logger.info("Sending structured text")
         async for chunk in split_text(result):
-            logger.debug("Returning result of recognition")
+            logger.debug("Returning structured text chunk")
             await sio.emit('recognition_result', chunk, room=sid)
     finally:
         await sio.disconnect(sid)
+
